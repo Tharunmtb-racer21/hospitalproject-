@@ -14,16 +14,103 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clinic_state: {
+        Row: {
+          avg_consultation_minutes: number
+          current_token_id: string | null
+          id: number
+          on_break: boolean
+          updated_at: string
+        }
+        Insert: {
+          avg_consultation_minutes?: number
+          current_token_id?: string | null
+          id?: number
+          on_break?: boolean
+          updated_at?: string
+        }
+        Update: {
+          avg_consultation_minutes?: number
+          current_token_id?: string | null
+          id?: number
+          on_break?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_state_current_token_id_fkey"
+            columns: ["current_token_id"]
+            isOneToOne: false
+            referencedRelation: "tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tokens: {
+        Row: {
+          called_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_date: string | null
+          id: string
+          number: number
+          patient_name: string
+          priority: Database["public"]["Enums"]["token_priority"]
+          status: Database["public"]["Enums"]["token_status"]
+        }
+        Insert: {
+          called_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_date?: string | null
+          id?: string
+          number: number
+          patient_name: string
+          priority?: Database["public"]["Enums"]["token_priority"]
+          status?: Database["public"]["Enums"]["token_status"]
+        }
+        Update: {
+          called_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_date?: string | null
+          id?: string
+          number?: number
+          patient_name?: string
+          priority?: Database["public"]["Enums"]["token_priority"]
+          status?: Database["public"]["Enums"]["token_status"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      call_next_token: {
+        Args: never
+        Returns: {
+          called_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_date: string | null
+          id: string
+          number: number
+          patient_name: string
+          priority: Database["public"]["Enums"]["token_priority"]
+          status: Database["public"]["Enums"]["token_status"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tokens"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
-      [_ in never]: never
+      token_priority: "normal" | "emergency"
+      token_status: "waiting" | "serving" | "done" | "skipped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +237,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      token_priority: ["normal", "emergency"],
+      token_status: ["waiting", "serving", "done", "skipped"],
+    },
   },
 } as const
