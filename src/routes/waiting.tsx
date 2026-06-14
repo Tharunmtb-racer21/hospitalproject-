@@ -147,8 +147,25 @@ function WaitingRoom() {
   );
 }
 
-function MyTokenCard({ token, position, wait }: { token: { number: number; status: string; patient_name: string }; position: number; wait: number }) {
+function MyTokenCard({
+  token,
+  position,
+  wait,
+  avgMin,
+  totalWaiting,
+}: {
+  token: { number: number; status: string; patient_name: string };
+  position: number;
+  wait: number;
+  avgMin: number;
+  totalWaiting: number;
+}) {
   const isServing = token.status === "serving";
+  const isWaiting = token.status === "waiting";
+  const ahead = Math.max(0, position);
+  const progressPct = totalWaiting > 0 ? ((totalWaiting - ahead) / totalWaiting) * 100 : 0;
+  const trackUrl = typeof window !== "undefined" ? `${window.location.origin}/waiting?token=${token.number}` : `/waiting?token=${token.number}`;
+
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border-2 border-primary/40 bg-card p-5" style={{ boxShadow: "var(--shadow-glow)" }}>
       <div className="flex items-center justify-between gap-4">
@@ -165,10 +182,39 @@ function MyTokenCard({ token, position, wait }: { token: { number: number; statu
             </>
           ) : (
             <>
-              <div className="text-xs text-muted-foreground">{position} ahead of you</div>
-              <div className="text-2xl font-semibold tabular-nums">~{wait} min</div>
+              <div className="text-xs text-muted-foreground">Tokens ahead</div>
+              <div className="text-4xl font-bold tabular-nums text-primary">{ahead}</div>
+              <div className="text-sm text-muted-foreground">~{wait} min wait</div>
             </>
           )}
+        </div>
+      </div>
+
+      {isWaiting && totalWaiting > 0 && (
+        <div className="mt-4">
+          <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+            <span>Queue progress</span>
+            <span>{totalWaiting - ahead} of {totalWaiting}</span>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: "var(--gradient-primary)" }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+        <div className="shrink-0 rounded-lg bg-background p-1.5">
+          <QRCodeSVG value={trackUrl} size={56} bgColor="transparent" fgColor="currentColor" />
+        </div>
+        <div className="text-xs text-muted-foreground">
+          <div className="font-medium text-foreground">Scan to track on your phone</div>
+          <div className="mt-0.5">This QR code links directly to your token.</div>
         </div>
       </div>
     </div>
