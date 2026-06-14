@@ -80,7 +80,9 @@ function WaitingRoom() {
           </div>
         </div>
 
-        {me ? <MyTokenCard token={me} position={myPosition} wait={myWait} /> : <KioskTrackPrompt />}
+        {me ? <MyTokenCard token={me} position={myPosition} wait={myWait} avgMin={avgMin} totalWaiting={waiting.length} /> : <KioskTrackPrompt />}
+
+        <AnalyticsCard done={done.length} waiting={waiting.length} tokens={tokens} />
 
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
           <InfoTile label="In queue" value={waiting.length} Icon={Users} />
