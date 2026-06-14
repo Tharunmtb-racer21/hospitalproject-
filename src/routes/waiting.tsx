@@ -254,6 +254,45 @@ function InfoTile({ label, value, Icon }: { label: string; value: number | strin
   );
 }
 
+function AnalyticsCard({ done, waiting, tokens }: { done: number; waiting: number; tokens: ReturnType<typeof useQueue>["tokens"] }) {
+  const avgWait = useMemo(() => {
+    const todayDone = tokens.filter((t) => t.status === "done" && t.called_at && t.created_at);
+    if (todayDone.length === 0) return null;
+    const totalMinutes = todayDone.reduce((sum, t) => {
+      const called = new Date(t.called_at!).getTime();
+      const created = new Date(t.created_at).getTime();
+      return sum + (called - created) / 60000;
+    }, 0);
+    return Math.round(totalMinutes / todayDone.length);
+  }, [tokens]);
+
+  return (
+    <div className="mt-6 grid grid-cols-3 gap-3">
+      <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Served today</span>
+          <CheckCircle2 className="h-4 w-4 text-success" />
+        </div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums">{done}</div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Avg wait time</span>
+          <TrendingUp className="h-4 w-4 text-primary" />
+        </div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums">{avgWait !== null ? `${avgWait}m` : "—"}</div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Queue length</span>
+          <Users className="h-4 w-4 text-primary" />
+        </div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums">{waiting}</div>
+      </div>
+    </div>
+  );
+}
+
 function maskName(name: string) {
   const parts = name.trim().split(/\s+/);
   return parts.map((p, i) => (i === parts.length - 1 && parts.length > 1 ? p[0] + "." : p)).join(" ");
