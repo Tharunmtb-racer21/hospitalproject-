@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
-import { Activity, ArrowLeft, Clock, Users, Wifi, WifiOff, Coffee, QrCode } from "lucide-react";
+import {
+  Activity, ArrowLeft, Clock, Users, Wifi, WifiOff, Coffee, QrCode,
+  CheckCircle2, TrendingUp,
+} from "lucide-react";
 import { useQueue, estimateWait } from "@/lib/queue/use-queue";
 
 export const Route = createFileRoute("/waiting")({
@@ -14,7 +17,7 @@ export const Route = createFileRoute("/waiting")({
 
 function WaitingRoom() {
   const { token: myTokenNumber } = Route.useSearch();
-  const { waiting, serving, clinic, connected } = useQueue();
+  const { tokens, waiting, serving, done, clinic, connected } = useQueue();
   const avgMin = clinic?.avg_consultation_minutes ?? 10;
   const [showQR, setShowQR] = useState(false);
 
@@ -77,7 +80,9 @@ function WaitingRoom() {
           </div>
         </div>
 
-        {me ? <MyTokenCard token={me} position={myPosition} wait={myWait} /> : <KioskTrackPrompt />}
+        {me ? <MyTokenCard token={me} position={myPosition} wait={myWait} avgMin={avgMin} totalWaiting={waiting.length} /> : <KioskTrackPrompt />}
+
+        <AnalyticsCard done={done.length} waiting={waiting.length} tokens={tokens} />
 
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
           <InfoTile label="In queue" value={waiting.length} Icon={Users} />
@@ -142,8 +147,25 @@ function WaitingRoom() {
   );
 }
 
-function MyTokenCard({ token, position, wait }: { token: { number: number; status: string; patient_name: string }; position: number; wait: number }) {
+function MyTokenCard({
+  token,
+  position,
+  wait,
+  avgMin,
+  totalWaiting,
+}: {
+  token: { number: number; status: string; patient_name: string };
+  position: number;
+  wait: number;
+  avgMin: number;
+  totalWaiting: number;
+}) {
   const isServing = token.status === "serving";
+  const isWaiting = token.status === "waiting";
+  const ahead = Math.max(0, position);
+  const progressPct = totalWaiting > 0 ? ((totalWaiting - ahead) / totalWaiting) * 100 : 0;
+  const trackUrl = typeof window !== "undefined" ? `${window.location.origin}/waiting?token=${token.number}` : `/waiting?token=${token.number}`;
+
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border-2 border-primary/40 bg-card p-5" style={{ boxShadow: "var(--shadow-glow)" }}>
       <div className="flex items-center justify-between gap-4">
@@ -160,10 +182,39 @@ function MyTokenCard({ token, position, wait }: { token: { number: number; statu
             </>
           ) : (
             <>
-              <div className="text-xs text-muted-foreground">{position} ahead of you</div>
-              <div className="text-2xl font-semibold tabular-nums">~{wait} min</div>
+              <div className="text-xs text-muted-foreground">Tokens ahead</div>
+              <div className="text-4xl font-bold tabular-nums text-primary">{ahead}</div>
+              <div className="text-sm text-muted-foreground">~{wait} min wait</div>
             </>
           )}
+        </div>
+      </div>
+
+      {isWaiting && totalWaiting > 0 && (
+        <div className="mt-4">
+          <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+            <span>Queue progress</span>
+            <span>{totalWaiting - ahead} of {totalWaiting}</span>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: "var(--gradient-primary)" }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3">
+        <div className="shrink-0 rounded-lg bg-background p-1.5">
+          <QRCodeSVG value={trackUrl} size={56} bgColor="transparent" fgColor="currentColor" />
+        </div>
+        <div className="text-xs text-muted-foreground">
+          <div className="font-medium text-foreground">Scan to track on your phone</div>
+          <div className="mt-0.5">This QR code links directly to your token.</div>
         </div>
       </div>
     </div>
@@ -199,6 +250,45 @@ function InfoTile({ label, value, Icon }: { label: string; value: number | strin
         <Icon className="h-4 w-4 text-primary" />
       </div>
       <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function AnalyticsCard({ done, waiting, tokens }: { done: number; waiting: number; tokens: ReturnType<typeof useQueue>["tokens"] }) {
+  const avgWait = useMemo(() => {
+    const todayDone = tokens.filter((t) => t.status === "done" && t.called_at && t.created_at);
+    if (todayDone.length === 0) return null;
+    const totalMinutes = todayDone.reduce((sum, t) => {
+      const called = new Date(t.called_at!).getTime();
+      const created = new Date(t.created_at).getTime();
+      return sum + (called - created) / 60000;
+    }, 0);
+    return Math.round(totalMinutes / todayDone.length);
+  }, [tokens]);
+
+  return (
+    <div className="mt-6 grid grid-cols-3 gap-3">
+      <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Served today</span>
+          <CheckCircle2 className="h-4 w-4 text-success" />
+        </div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums">{done}</div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Avg wait time</span>
+          <TrendingUp className="h-4 w-4 text-primary" />
+        </div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums">{avgWait !== null ? `${avgWait}m` : "—"}</div>
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>Queue length</span>
+          <Users className="h-4 w-4 text-primary" />
+        </div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums">{waiting}</div>
+      </div>
     </div>
   );
 }
