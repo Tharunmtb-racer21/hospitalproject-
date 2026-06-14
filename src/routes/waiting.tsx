@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { QRCodeSVG } from "qrcode.react";
-import { Activity, ArrowLeft, Clock, Users, Wifi, WifiOff, Coffee, QrCode } from "lucide-react";
+import {
+  Activity, ArrowLeft, Clock, Users, Wifi, WifiOff, Coffee, QrCode,
+  CheckCircle2, TrendingUp,
+} from "lucide-react";
 import { useQueue, estimateWait } from "@/lib/queue/use-queue";
 
 export const Route = createFileRoute("/waiting")({
