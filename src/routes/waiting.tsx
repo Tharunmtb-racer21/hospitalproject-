@@ -17,7 +17,7 @@ export const Route = createFileRoute("/waiting")({
 
 function WaitingRoom() {
   const { token: myTokenNumber } = Route.useSearch();
-  const { waiting, serving, clinic, connected } = useQueue();
+  const { tokens, waiting, serving, done, clinic, connected } = useQueue();
   const avgMin = clinic?.avg_consultation_minutes ?? 10;
   const [showQR, setShowQR] = useState(false);
 
